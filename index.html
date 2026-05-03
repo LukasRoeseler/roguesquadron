@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Rogue Squadron Parody</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+    #canvas { display: block; width: 100vw; height: 100vh; }
+
+    #hud {
+      position: fixed; inset: 0; pointer-events: none;
+      color: #6ef0a8; text-shadow: 0 0 8px rgba(110, 240, 168, 0.7);
+    }
+    #crosshair {
+      position: absolute; left: 50%; top: 50%;
+      width: 60px; height: 60px; transform: translate(-50%, -50%);
+      border: 1px solid #6ef0a8; border-radius: 50%; opacity: 0.7;
+    }
+    #crosshair::before, #crosshair::after {
+      content: ''; position: absolute; background: #6ef0a8;
+    }
+    #crosshair::before { left: 50%; top: -8px; width: 1px; height: 16px; transform: translateX(-50%); }
+    #crosshair::after  { top: 50%; left: -8px; height: 1px; width: 16px; transform: translateY(-50%); }
+
+    #speedometer {
+      position: absolute; left: 24px; bottom: 24px;
+      font-size: 14px; line-height: 1.6;
+    }
+    #speedometer .bar {
+      width: 200px; height: 6px; background: rgba(110, 240, 168, 0.2);
+      margin-top: 4px; border: 1px solid #6ef0a8;
+    }
+    #speedometer .bar > div { height: 100%; background: #6ef0a8; width: 0%; transition: width 0.1s linear; }
+
+    #status {
+      position: absolute; right: 24px; bottom: 24px; text-align: right; font-size: 14px; line-height: 1.6;
+    }
+
+    #mobile-controls { display: none; }
+    @media (pointer: coarse) {
+      #mobile-controls { display: block; }
+      .joystick {
+        position: absolute; bottom: 40px; width: 120px; height: 120px;
+        border-radius: 50%; border: 2px solid rgba(110, 240, 168, 0.5);
+        background: rgba(0,0,0,0.3); pointer-events: auto;
+      }
+      #joy-left  { left: 30px; }
+      #joy-right { right: 30px; }
+      .knob {
+        position: absolute; left: 50%; top: 50%;
+        width: 50px; height: 50px; margin: -25px 0 0 -25px;
+        border-radius: 50%; background: rgba(110, 240, 168, 0.4);
+        border: 1px solid #6ef0a8;
+      }
+      .touch-btn {
+        position: absolute; width: 70px; height: 70px;
+        border-radius: 50%; border: 2px solid rgba(110, 240, 168, 0.5);
+        background: rgba(0,0,0,0.3); color: #6ef0a8; pointer-events: auto;
+        font-size: 12px; text-align: center; line-height: 70px;
+      }
+      #btn-fire { right: 170px; bottom: 60px; }
+      #btn-zoom { right: 170px; bottom: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div id="hud">
+    <div id="crosshair"></div>
+    <div id="speedometer">
+      SPEED <span id="speed-val">0</span> u/s
+      <div class="bar"><div id="speed-bar"></div></div>
+    </div>
+    <div id="status">
+      <div>SHIP: <span id="ship-name">X-WING</span></div>
+      <div>WEAPON: ARMED</div>
+      <div id="zoom-status">ZOOM: OFF</div>
+    </div>
+
+    <div id="mobile-controls">
+      <div id="joy-left"  class="joystick"><div class="knob"></div></div>
+      <div id="joy-right" class="joystick"><div class="knob"></div></div>
+      <div id="btn-fire" class="touch-btn">FIRE</div>
+      <div id="btn-zoom" class="touch-btn">ZOOM</div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
