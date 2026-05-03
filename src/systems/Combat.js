@@ -1,3 +1,4 @@
+// src/systems/Combat.js
 import * as THREE from 'three';
 
 export class CombatSystem {
@@ -5,148 +6,96 @@ export class CombatSystem {
     this.scene = scene;
     this.lasers = [];
     this.explosions = [];
-    this.targets = []; // { mesh, hp, onHit, onDestroy }
-    this._raycaster = new THREE.Raycaster();
-    this._tmpDir = new THREE.Vector3();
+    this.targets = [];
+    this._ray = new THREE.Raycaster();
   }
 
   registerTarget(mesh, hp = 1, onDestroy = null) {
-    const t = { mesh, hp, maxHp: hp, onDestroy };
+    const t = { mesh, hp, onDestroy };
     this.targets.push(t);
     return t;
   }
 
-  spawnLaser({ origin, velocity, color = 0xff3030, owner = null, lifetime = 2.0 }) {
-    const length = 2.5;
+  spawnLaser({ origin, velocity, color = 0xff3030, owner = null, lifetime = 2.2 }) {
     const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.Float32BufferAttribute([
-      0, 0, 0,
-      0, 0, -length
-    ], 3));
-    const mat = new THREE.LineBasicMaterial({ color, linewidth: 2, transparent: true, opacity: 0.95 });
+    geom.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, -2.8], 3));
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
     const line = new THREE.Line(geom, mat);
-
     line.position.copy(origin);
-    // Ausrichtung auf Bewegungsrichtung
     const dir = velocity.clone().normalize();
     const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), dir, new THREE.Vector3(0, 1, 0));
     line.quaternion.setFromRotationMatrix(m);
-    // lookAt zeigt -Z entlang dir – passt zu unserer Geometrie
-
     this.scene.add(line);
-
-    // Glow als sprite-ähnlicher Punkt
-    const glowMat = new THREE.PointsMaterial({ color, size: 0.5, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
-    const glowGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0,0,0], 3));
-    const glow = new THREE.Points(glowGeom, glowMat);
-    line.add(glow);
-
     this.lasers.push({ mesh: line, velocity: velocity.clone(), age: 0, lifetime, owner });
   }
 
-  _spawnExplosion(position, color = 0xffaa44) {
-    const count = 30;
-    const positions = new Float32Array(count * 3);
-    const velocities = [];
+  _spawnExplosion(position, color) {
+    const count = 24;
+    const pos = new Float32Array(count * 3);
+    const vels = [];
     for (let i = 0; i < count; i++) {
-      positions[i*3] = positions[i*3+1] = positions[i*3+2] = 0;
-      const v = new THREE.Vector3(
-        (Math.random() - 0.5),
-        (Math.random() - 0.5),
-        (Math.random() - 0.5)
-      ).normalize().multiplyScalar(8 + Math.random() * 12);
-      velocities.push(v);
+      pos[i*3] = pos[i*3+1] = pos[i*3+2] = 0;
+      vels.push(new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(6 + Math.random() * 14));
     }
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({
-      color, size: 0.6, transparent: true, opacity: 1,
-      blending: THREE.AdditiveBlending, depthWrite: false
-    });
-    const points = new THREE.Points(geom, mat);
-    points.position.copy(position);
-    this.scene.add(points);
-
-    this.explosions.push({ points, velocities, age: 0, lifetime: 1.0 });
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    const m = new THREE.PointsMaterial({ color, size: 0.55, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
+    const pts = new THREE.Points(g, m);
+    pts.position.copy(position); this.scene.add(pts);
+    this.explosions.push({ pts, vels, age: 0, lifetime: 0.9 });
   }
 
   update(dt) {
-    // Laser-Bewegung + Raycast
+    const meshes = this.targets.filter(t => t.hp > 0 && t.mesh.parent).map(t => t.mesh);
+
     for (let i = this.lasers.length - 1; i >= 0; i--) {
-      const L = this.lasers[i];
-      L.age += dt;
-      if (L.age >= L.lifetime) {
-        this.scene.remove(L.mesh);
-        L.mesh.geometry.dispose(); L.mesh.material.dispose();
-        this.lasers.splice(i, 1);
-        continue;
-      }
+      const L = this.lasers[i]; L.age += dt;
+      if (L.age >= L.lifetime) { this._removeLaser(i); continue; }
 
-      const stepLen = L.velocity.length() * dt;
-      this._tmpDir.copy(L.velocity).normalize();
+      const step = L.velocity.length() * dt;
+      const dir = L.velocity.clone().normalize();
+      this._ray.set(L.mesh.position, dir); this._ray.far = step + 2;
 
-      // Raycast über das ganze Step-Segment
-      this._raycaster.set(L.mesh.position, this._tmpDir);
-      this._raycaster.far = stepLen + 2.0;
+      const ownerGroup = L.owner?.group;
+      const filteredMeshes = meshes.filter(m => m !== ownerGroup && !m.isDescendantOf?.(ownerGroup));
+      const hits = filteredMeshes.length ? this._ray.intersectObjects(filteredMeshes, true) : [];
 
-      const meshes = this.targets
-        .filter(t => t.hp > 0 && t.mesh !== L.owner?.hull)
-        .map(t => t.mesh);
-
-      let hit = null;
-      if (meshes.length > 0) {
-        const intersections = this._raycaster.intersectObjects(meshes, true);
-        if (intersections.length > 0) hit = intersections[0];
-      }
-
-      if (hit) {
-        // Schaden zuweisen: finde Top-Level-Target
-        let root = hit.object;
-        while (root.parent && !this.targets.find(t => t.mesh === root)) {
-          if (root.parent === this.scene) break;
-          root = root.parent;
-        }
-        const target = this.targets.find(t => t.mesh === root) ||
-                       this.targets.find(t => t.mesh === hit.object);
-        if (target) {
+      if (hits.length) {
+        let root = hits[0].object;
+        while (root.parent && root.parent !== this.scene) root = root.parent;
+        const target = this.targets.find(t => t.mesh === root) ?? this.targets.find(t => t.mesh === hits[0].object);
+        if (target && target.hp > 0) {
           target.hp -= 1;
-          this._spawnExplosion(hit.point, L.mesh.material.color.getHex());
+          this._spawnExplosion(hits[0].point, L.mesh.material.color.getHex());
           if (target.hp <= 0) {
             target.onDestroy?.(target);
-            this.scene.remove(target.mesh);
             this._spawnExplosion(target.mesh.position, 0xffaa44);
+            this.scene.remove(target.mesh);
             this.targets = this.targets.filter(t => t !== target);
           }
         }
-        this.scene.remove(L.mesh);
-        L.mesh.geometry.dispose(); L.mesh.material.dispose();
-        this.lasers.splice(i, 1);
-        continue;
+        this._removeLaser(i); continue;
       }
 
-      // Bewegung anwenden
       L.mesh.position.addScaledVector(L.velocity, dt);
     }
 
-    // Partikel-Explosionen updaten
     for (let i = this.explosions.length - 1; i >= 0; i--) {
-      const ex = this.explosions[i];
-      ex.age += dt;
-      const k = ex.age / ex.lifetime;
-      if (k >= 1) {
-        this.scene.remove(ex.points);
-        ex.points.geometry.dispose(); ex.points.material.dispose();
-        this.explosions.splice(i, 1);
-        continue;
+      const ex = this.explosions[i]; ex.age += dt;
+      if (ex.age >= ex.lifetime) { this.scene.remove(ex.pts); ex.pts.geometry.dispose(); ex.pts.material.dispose(); this.explosions.splice(i, 1); continue; }
+      const pa = ex.pts.geometry.getAttribute('position');
+      for (let j = 0; j < ex.vels.length; j++) {
+        pa.array[j*3]   += ex.vels[j].x * dt;
+        pa.array[j*3+1] += ex.vels[j].y * dt;
+        pa.array[j*3+2] += ex.vels[j].z * dt;
       }
-      const posAttr = ex.points.geometry.getAttribute('position');
-      for (let j = 0; j < ex.velocities.length; j++) {
-        posAttr.array[j*3]   += ex.velocities[j].x * dt;
-        posAttr.array[j*3+1] += ex.velocities[j].y * dt;
-        posAttr.array[j*3+2] += ex.velocities[j].z * dt;
-      }
-      posAttr.needsUpdate = true;
-      ex.points.material.opacity = 1 - k;
+      pa.needsUpdate = true;
+      ex.pts.material.opacity = 1 - ex.age / ex.lifetime;
     }
+  }
+
+  _removeLaser(i) {
+    const L = this.lasers[i];
+    this.scene.remove(L.mesh); L.mesh.geometry.dispose(); L.mesh.material.dispose();
+    this.lasers.splice(i, 1);
   }
 }

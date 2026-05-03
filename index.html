@@ -13,87 +13,634 @@
   }
   </script>
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
-    #canvas { display: block; width: 100vw; height: 100vh; }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-    #hud {
-      position: fixed; inset: 0; pointer-events: none;
-      color: #6ef0a8; text-shadow: 0 0 8px rgba(110, 240, 168, 0.7);
+  <style>
+    :root {
+      --gold: #d4a017;
+      --gold-bright: #f5c842;
+      --gold-dark: #8a6a0a;
+      --red: #cc2200;
+      --red-bright: #ff4422;
+      --teal: #00c8a0;
+      --bg-dark: #040608;
+      --bg-panel: rgba(4, 12, 20, 0.92);
+      --border-gold: #8a6a0a;
+      --text-dim: #7a8a7a;
     }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg-dark);
+      font-family: 'Orbitron', monospace;
+      cursor: default;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen { position: fixed; inset: 0; display: none; }
+    .screen.active { display: flex; }
+
+    /* ===== MAIN MENU ===== */
+    #screen-menu {
+      flex-direction: column;
+      background: var(--bg-dark);
+      overflow: hidden;
+    }
+
+    #menu-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 50%, rgba(0,80,180,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 50%, rgba(180,60,0,0.06) 0%, transparent 60%),
+        linear-gradient(180deg, #000 0%, #020810 40%, #010305 100%);
+    }
+
+    #menu-stars {
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 15%, white, transparent),
+        radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 45% 8%, white, transparent),
+        radial-gradient(1px 1px at 60% 65%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 75% 20%, white, transparent),
+        radial-gradient(1px 1px at 85% 50%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 15% 75%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 90% 30%, white, transparent),
+        radial-gradient(1px 1px at 35% 85%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 50% 55%, white, transparent),
+        radial-gradient(1px 1px at 5% 90%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 80% 80%, white, transparent),
+        radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 65% 45%, white, transparent),
+        radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(2px 2px at 55% 25%, rgba(255,220,150,0.6), transparent),
+        radial-gradient(2px 2px at 30% 60%, rgba(200,220,255,0.5), transparent);
+    }
+
+    #menu-scanlines {
+      position: absolute; inset: 0; pointer-events: none; z-index: 100;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    }
+
+    #menu-top-bar {
+      position: relative; z-index: 10;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border-gold);
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .rebel-logo {
+      width: 36px; height: 36px;
+      display: inline-block;
+    }
+
+    #menu-title-area {
+      position: relative; z-index: 10;
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 0 20px;
+    }
+
+    #game-subtitle {
+      font-size: 11px; letter-spacing: 8px; color: var(--teal);
+      font-family: 'Share Tech Mono', monospace;
+      margin-bottom: 12px; text-transform: uppercase;
+    }
+
+    #game-title {
+      font-size: clamp(32px, 5vw, 64px);
+      font-weight: 900; letter-spacing: 4px;
+      color: var(--gold-bright);
+      text-shadow: 0 0 40px rgba(212,160,23,0.6), 0 0 80px rgba(212,160,23,0.2);
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    #game-title span { color: #fff; }
+
+    #game-subtitle2 {
+      font-size: 10px; letter-spacing: 6px; color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+      margin-top: 10px;
+    }
+
+    /* Horizontal divider decorative */
+    .gold-divider {
+      width: 60%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 20px auto;
+      position: relative; z-index: 10;
+    }
+    .gold-divider::before, .gold-divider::after {
+      content: ''; position: absolute; top: -3px;
+      width: 6px; height: 6px; background: var(--gold);
+      transform: rotate(45deg);
+    }
+    .gold-divider::before { left: 25%; }
+    .gold-divider::after { right: 25%; }
+
+    /* Main menu layout: left buttons + right "terminal" */
+    #menu-main-area {
+      position: relative; z-index: 10;
+      display: flex; flex: 1; gap: 0;
+      padding: 0 40px 30px;
+    }
+
+    #menu-buttons-col {
+      width: 220px; display: flex; flex-direction: column; justify-content: center; gap: 6px;
+      padding-right: 30px;
+      border-right: 1px solid rgba(138,106,10,0.3);
+    }
+
+    .menu-btn {
+      background: transparent;
+      border: none; border-left: 3px solid transparent;
+      color: var(--text-dim);
+      font-family: 'Orbitron', monospace;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 3px;
+      padding: 12px 16px;
+      text-align: left; cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .menu-btn::after {
+      content: ''; position: absolute; left: -3px; top: 0; bottom: 0;
+      width: 3px; background: var(--gold); opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .menu-btn:hover, .menu-btn.selected {
+      color: var(--gold-bright);
+      border-left-color: var(--gold);
+      background: rgba(212,160,23,0.06);
+      text-shadow: 0 0 12px rgba(212,160,23,0.5);
+    }
+    .menu-btn:hover::after, .menu-btn.selected::after { opacity: 1; }
+    .menu-btn.selected { color: #fff; }
+
+    #menu-right-panel {
+      flex: 1; padding: 20px 30px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    /* Player roster table (Rogue Squadron style) */
+    #roster-panel {
+      width: 100%; max-width: 580px;
+    }
+
+    .panel-title {
+      font-size: 18px; font-weight: 700; color: var(--red-bright);
+      letter-spacing: 4px; margin-bottom: 12px; text-transform: lowercase;
+      font-family: 'Orbitron', monospace;
+    }
+
+    .rs-table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+    }
+    .rs-table th {
+      color: var(--teal); text-align: left; padding: 4px 8px;
+      border-bottom: 1px solid rgba(0,200,160,0.3);
+      font-size: 10px; letter-spacing: 2px;
+    }
+    .rs-table td {
+      padding: 6px 8px; color: var(--gold);
+      border-bottom: 1px solid rgba(138,106,10,0.2);
+    }
+    .rs-table tr.active-row td { background: rgba(212,160,23,0.12); color: #fff; }
+    .rs-table tr:hover td { background: rgba(212,160,23,0.06); cursor: pointer; }
+
+    .current-player-bar {
+      margin-top: 16px; display: flex; align-items: center; gap: 12px;
+      font-size: 12px; color: var(--teal); font-family: 'Share Tech Mono', monospace;
+    }
+    .player-name-box {
+      background: transparent; border: 1px solid var(--gold);
+      color: var(--gold-bright); padding: 4px 12px;
+      font-family: 'Orbitron', monospace; font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* ===== SHIP SELECT SCREEN ===== */
+    #screen-shipselect {
+      flex-direction: column;
+      background: var(--bg-dark);
+    }
+
+    #shipselect-bg {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, #000508 0%, #010c18 50%, #000 100%);
+    }
+
+    #shipselect-header {
+      position: relative; z-index: 10;
+      text-align: center; padding: 20px;
+      border-bottom: 1px solid var(--border-gold);
+      background: rgba(0,0,0,0.6);
+    }
+
+    .select-title {
+      font-size: 22px; font-weight: 900; letter-spacing: 8px;
+      color: var(--gold-bright);
+      text-shadow: 0 0 20px rgba(212,160,23,0.5);
+      text-transform: uppercase;
+    }
+
+    .select-subtitle {
+      font-size: 10px; letter-spacing: 4px; color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace; margin-top: 4px;
+    }
+
+    #shipselect-body {
+      position: relative; z-index: 10;
+      flex: 1; display: flex; gap: 0;
+      overflow: hidden;
+    }
+
+    /* Left: ship grid */
+    #ship-grid {
+      width: 380px; padding: 16px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px; align-content: start;
+      overflow-y: auto;
+      border-right: 1px solid rgba(138,106,10,0.3);
+    }
+    #ship-grid::-webkit-scrollbar { width: 4px; background: #000; }
+    #ship-grid::-webkit-scrollbar-thumb { background: var(--border-gold); }
+
+    .ship-card {
+      position: relative; cursor: pointer;
+      border: 1px solid rgba(138,106,10,0.4);
+      background: rgba(0,8,16,0.8);
+      padding: 8px;
+      transition: all 0.15s;
+      overflow: hidden;
+    }
+    .ship-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(212,160,23,0.05) 0%, transparent 60%);
+    }
+    .ship-card:hover, .ship-card.selected {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.08);
+    }
+    .ship-card.selected { border-color: var(--gold-bright); }
+    .ship-card.selected::after {
+      content: 'SELECTED'; position: absolute; top: 4px; right: 4px;
+      font-size: 7px; letter-spacing: 1px; color: var(--gold-bright);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .ship-card-preview {
+      width: 100%; height: 90px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .ship-card-preview canvas {
+      width: 100% !important; height: 100% !important;
+    }
+
+    .ship-card-name {
+      font-size: 9px; font-weight: 700; letter-spacing: 2px;
+      color: var(--gold); text-align: center;
+      margin-top: 4px; text-transform: uppercase;
+    }
+    .ship-card.selected .ship-card-name { color: var(--gold-bright); }
+
+    .ship-card-secondary {
+      font-size: 7px; color: var(--text-dim);
+      text-align: center; letter-spacing: 1px;
+      font-family: 'Share Tech Mono', monospace; margin-top: 1px;
+    }
+
+    /* Right: big preview */
+    #ship-preview-panel {
+      flex: 1; display: flex; flex-direction: column;
+      padding: 20px; position: relative;
+    }
+
+    #ship-big-canvas {
+      flex: 1; width: 100%;
+      border: 1px solid rgba(138,106,10,0.3);
+      background: rgba(0,4,10,0.9);
+    }
+
+    #ship-info-box {
+      margin-top: 16px;
+      border: 1px solid var(--border-gold);
+      padding: 14px 18px;
+      background: rgba(0,8,16,0.9);
+    }
+
+    #ship-info-name {
+      font-size: 18px; font-weight: 900; color: var(--gold-bright);
+      letter-spacing: 4px; text-transform: uppercase;
+    }
+
+    #ship-info-secondary {
+      font-size: 10px; color: var(--teal);
+      font-family: 'Share Tech Mono', monospace;
+      letter-spacing: 2px; margin-top: 2px;
+    }
+
+    .ship-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+
+    .stat-row { display: flex; flex-direction: column; gap: 3px; }
+    .stat-label { font-size: 8px; letter-spacing: 2px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; }
+    .stat-bar { height: 4px; background: rgba(255,255,255,0.1); position: relative; }
+    .stat-fill { height: 100%; background: var(--gold); position: relative; }
+    .stat-fill.red { background: var(--red-bright); }
+    .stat-fill.teal { background: var(--teal); }
+
+    #ship-desc {
+      font-size: 9px; color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+      line-height: 1.6; margin-top: 10px; letter-spacing: 1px;
+    }
+
+    #shipselect-footer {
+      position: relative; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 24px;
+      border-top: 1px solid var(--border-gold);
+      background: rgba(0,0,0,0.6);
+    }
+
+    .footer-hint {
+      font-size: 9px; color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace; letter-spacing: 2px;
+    }
+
+    .action-btn {
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold-bright);
+      font-family: 'Orbitron', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 3px; padding: 10px 28px;
+      cursor: pointer; text-transform: uppercase;
+      transition: all 0.15s; position: relative;
+    }
+    .action-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--gold); opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .action-btn:hover { color: #000; text-shadow: none; }
+    .action-btn:hover::before { opacity: 1; }
+    .action-btn span { position: relative; z-index: 1; }
+    .action-btn.back-btn {
+      border-color: var(--text-dim); color: var(--text-dim);
+    }
+    .action-btn.back-btn::before { background: var(--text-dim); }
+    .action-btn.back-btn:hover { color: #000; }
+
+    /* ===== GAME SCREEN ===== */
+    #screen-game {
+      flex-direction: column;
+      background: #000;
+    }
+
+    #game-canvas {
+      width: 100%; flex: 1; display: block;
+    }
+
+    /* HUD */
+    #hud {
+      position: absolute; inset: 0; pointer-events: none;
+      color: #6ef0a8;
+    }
+
     #crosshair {
       position: absolute; left: 50%; top: 50%;
-      width: 60px; height: 60px; transform: translate(-50%, -50%);
-      border: 1px solid #6ef0a8; border-radius: 50%; opacity: 0.7;
-    }
-    #crosshair::before, #crosshair::after {
-      content: ''; position: absolute; background: #6ef0a8;
-    }
-    #crosshair::before { left: 50%; top: -8px; width: 1px; height: 16px; transform: translateX(-50%); }
-    #crosshair::after  { top: 50%; left: -8px; height: 1px; width: 16px; transform: translateY(-50%); }
-
-    #speedometer {
-      position: absolute; left: 24px; bottom: 24px;
-      font-size: 14px; line-height: 1.6;
-    }
-    #speedometer .bar {
-      width: 200px; height: 6px; background: rgba(110, 240, 168, 0.2);
-      margin-top: 4px; border: 1px solid #6ef0a8;
-    }
-    #speedometer .bar > div { height: 100%; background: #6ef0a8; width: 0%; transition: width 0.1s linear; }
-
-    #status {
-      position: absolute; right: 24px; bottom: 24px; text-align: right; font-size: 14px; line-height: 1.6;
+      width: 56px; height: 56px; transform: translate(-50%, -50%);
     }
 
-    #mobile-controls { display: none; }
-    @media (pointer: coarse) {
-      #mobile-controls { display: block; }
-      .joystick {
-        position: absolute; bottom: 40px; width: 120px; height: 120px;
-        border-radius: 50%; border: 2px solid rgba(110, 240, 168, 0.5);
-        background: rgba(0,0,0,0.3); pointer-events: auto;
-      }
-      #joy-left  { left: 30px; }
-      #joy-right { right: 30px; }
-      .knob {
-        position: absolute; left: 50%; top: 50%;
-        width: 50px; height: 50px; margin: -25px 0 0 -25px;
-        border-radius: 50%; background: rgba(110, 240, 168, 0.4);
-        border: 1px solid #6ef0a8;
-      }
-      .touch-btn {
-        position: absolute; width: 70px; height: 70px;
-        border-radius: 50%; border: 2px solid rgba(110, 240, 168, 0.5);
-        background: rgba(0,0,0,0.3); color: #6ef0a8; pointer-events: auto;
-        font-size: 12px; text-align: center; line-height: 70px;
-      }
-      #btn-fire { right: 170px; bottom: 60px; }
-      #btn-zoom { right: 170px; bottom: 140px; }
+    #speedo {
+      position: absolute; left: 20px; bottom: 20px;
+      font-family: 'Share Tech Mono', monospace; font-size: 12px;
+      color: #6ef0a8;
     }
+    .hud-bar { width: 160px; height: 5px; background: rgba(110,240,168,0.15); border: 1px solid #6ef0a8; margin-top: 3px; }
+    .hud-bar-fill { height: 100%; background: #6ef0a8; width: 0%; transition: width 0.1s; }
+
+    #hud-status {
+      position: absolute; right: 20px; bottom: 20px;
+      text-align: right; font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; color: #6ef0a8; line-height: 1.8;
+    }
+
+    #hud-controls {
+      position: absolute; left: 20px; top: 20px;
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      color: rgba(110,240,168,0.5); line-height: 1.7;
+    }
+
+    #hud-back {
+      position: absolute; right: 20px; top: 20px;
+      pointer-events: auto;
+    }
+
+    .hud-btn {
+      background: rgba(0,0,0,0.6); border: 1px solid rgba(110,240,168,0.4);
+      color: rgba(110,240,168,0.8); font-family: 'Orbitron', monospace;
+      font-size: 9px; letter-spacing: 2px; padding: 6px 14px;
+      cursor: pointer; text-transform: uppercase;
+    }
+    .hud-btn:hover { background: rgba(110,240,168,0.1); border-color: #6ef0a8; }
+
+    /* Scanlines overlay on game too */
+    .scanlines {
+      position: absolute; inset: 0; pointer-events: none; z-index: 200;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 6px);
+    }
+
+    /* Animated title entrance */
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes glowPulse {
+      0%, 100% { text-shadow: 0 0 40px rgba(212,160,23,0.6), 0 0 80px rgba(212,160,23,0.2); }
+      50% { text-shadow: 0 0 60px rgba(212,160,23,0.9), 0 0 120px rgba(212,160,23,0.4); }
+    }
+
+    #game-title { animation: fadeSlideDown 0.8s ease both, glowPulse 3s ease 0.8s infinite; }
+    #game-subtitle { animation: fadeIn 1.2s ease 0.4s both; }
+    #game-subtitle2 { animation: fadeIn 1.2s ease 0.6s both; }
+    #menu-buttons-col { animation: fadeIn 1s ease 0.8s both; }
+    #menu-right-panel { animation: fadeIn 1s ease 1s both; }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
 
-  <div id="hud">
-    <div id="crosshair"></div>
-    <div id="speedometer">
-      SPEED <span id="speed-val">0</span> u/s
-      <div class="bar"><div id="speed-bar"></div></div>
-    </div>
-    <div id="status">
-      <div>SHIP: <span id="ship-name">X-WING</span></div>
-      <div>WEAPON: ARMED</div>
-      <div id="zoom-status">ZOOM: OFF</div>
+  <!-- MAIN MENU -->
+  <div id="screen-menu" class="screen active">
+    <div id="menu-bg"></div>
+    <div id="menu-stars"></div>
+    <div id="menu-scanlines"></div>
+
+    <div id="menu-top-bar">
+      <svg class="rebel-logo" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="16" stroke="#d4a017" stroke-width="1.5" fill="none"/>
+        <path d="M18 4 L22 14 L32 14 L24 20 L27 30 L18 24 L9 30 L12 20 L4 14 L14 14 Z" fill="#d4a017" opacity="0.9"/>
+      </svg>
+      <span style="font-size:10px;letter-spacing:4px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">ROGUE SQUADRON // PARODY EDITION</span>
+      <span style="margin-left:auto;font-size:9px;letter-spacing:2px;color:var(--border-gold);font-family:'Share Tech Mono',monospace;">VER 1.0</span>
     </div>
 
-    <div id="mobile-controls">
-      <div id="joy-left"  class="joystick"><div class="knob"></div></div>
-      <div id="joy-right" class="joystick"><div class="knob"></div></div>
-      <div id="btn-fire" class="touch-btn">FIRE</div>
-      <div id="btn-zoom" class="touch-btn">ZOOM</div>
+    <div id="menu-title-area">
+      <div id="game-subtitle">A long time ago, in a galaxy far, far away...</div>
+      <div id="game-title">Rogue <span>Squadron</span></div>
+      <div id="game-subtitle2">// PARODY EDITION // THREE.JS //</div>
+    </div>
+
+    <div class="gold-divider"></div>
+
+    <div id="menu-main-area">
+      <div id="menu-buttons-col">
+        <button class="menu-btn selected" onclick="showRoster()">start</button>
+        <button class="menu-btn" onclick="goShipSelect()">quick battle</button>
+        <button class="menu-btn" style="color:var(--text-dim);opacity:0.5;">high scores</button>
+        <button class="menu-btn" style="color:var(--text-dim);opacity:0.5;">credits</button>
+        <button class="menu-btn" style="color:var(--text-dim);opacity:0.5;">bios</button>
+        <div style="height:20px;border-bottom:1px solid rgba(138,106,10,0.2);margin:4px 0;"></div>
+        <button class="menu-btn" style="color:var(--text-dim);opacity:0.4;font-size:11px;">quit</button>
+      </div>
+
+      <div id="menu-right-panel">
+        <div id="roster-panel">
+          <div class="panel-title">player roster</div>
+          <table class="rs-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Highest Mission</th>
+                <th>Rank</th>
+                <th>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a017"><path d="M7 1l1.5 4h4.5l-3.5 2.5 1.3 4L7 9.5 3.2 11.5l1.3-4L1 5h4.5z"/></svg>
+                </th>
+                <th>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="#888"><path d="M7 1l1.5 4h4.5l-3.5 2.5 1.3 4L7 9.5 3.2 11.5l1.3-4L1 5h4.5z"/></svg>
+                </th>
+                <th>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="#c87d3a"><path d="M7 1l1.5 4h4.5l-3.5 2.5 1.3 4L7 9.5 3.2 11.5l1.3-4L1 5h4.5z"/></svg>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="active-row">
+                <td>Luke Skywalker</td>
+                <td>1 : Mos Eisley</td>
+                <td>Trainee</td>
+                <td>0</td><td>0</td><td>0</td>
+              </tr>
+              <tr><td style="color:var(--text-dim)">—</td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr><td style="color:var(--text-dim)">—</td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr><td style="color:var(--text-dim)">—</td><td></td><td></td><td></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+          <div class="current-player-bar">
+            Current Player
+            <div class="player-name-box">Luke Skywalker</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHIP SELECT -->
+  <div id="screen-shipselect" class="screen">
+    <div id="shipselect-bg"></div>
+    <div id="menu-scanlines"></div>
+
+    <div id="shipselect-header">
+      <div class="select-title">Select Your Craft</div>
+      <div class="select-subtitle">PRESS ENTER TO CONFIRM // ESC TO CANCEL</div>
+    </div>
+
+    <div id="shipselect-body">
+      <!-- Left: grid of ships -->
+      <div id="ship-grid"></div>
+
+      <!-- Right: big preview -->
+      <div id="ship-preview-panel">
+        <canvas id="ship-big-canvas"></canvas>
+        <div id="ship-info-box">
+          <div id="ship-info-name">X-WING</div>
+          <div id="ship-info-secondary">SECONDARY WEAPON: SEEKER TORPEDOES</div>
+          <div class="ship-stats">
+            <div class="stat-row">
+              <div class="stat-label">SPEED</div>
+              <div class="stat-bar"><div class="stat-fill" id="stat-speed" style="width:60%"></div></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">AGILITY</div>
+              <div class="stat-bar"><div class="stat-fill teal" id="stat-agility" style="width:55%"></div></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">FIREPOWER</div>
+              <div class="stat-bar"><div class="stat-fill red" id="stat-firepower" style="width:70%"></div></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-label">SHIELDS</div>
+              <div class="stat-bar"><div class="stat-fill" id="stat-shields" style="width:80%"></div></div>
+            </div>
+          </div>
+          <div id="ship-desc">A reliable starfighter used by the Rebel Alliance. Equipped with four laser cannons and proton torpedo launchers. The S-foils deploy for combat configuration.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="shipselect-footer">
+      <button class="action-btn back-btn" onclick="showMenu()"><span>← BACK</span></button>
+      <div class="footer-hint">USE ARROW KEYS OR CLICK TO SELECT</div>
+      <button class="action-btn" onclick="startGame()"><span>LAUNCH →</span></button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <canvas id="game-canvas"></canvas>
+    <div id="hud">
+      <div id="crosshair">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="20" stroke="#6ef0a8" stroke-width="1" opacity="0.7"/>
+          <line x1="28" y1="4" x2="28" y2="14" stroke="#6ef0a8" stroke-width="1"/>
+          <line x1="28" y1="42" x2="28" y2="52" stroke="#6ef0a8" stroke-width="1"/>
+          <line x1="4" y1="28" x2="14" y2="28" stroke="#6ef0a8" stroke-width="1"/>
+          <line x1="42" y1="28" x2="52" y2="28" stroke="#6ef0a8" stroke-width="1"/>
+          <circle cx="28" cy="28" r="2" fill="#6ef0a8" opacity="0.5"/>
+        </svg>
+      </div>
+      <div id="speedo">
+        SPEED <span id="speed-val">0</span> u/s
+        <div class="hud-bar"><div class="hud-bar-fill" id="speed-bar"></div></div>
+      </div>
+      <div id="hud-status">
+        <div>SHIP: <span id="hud-ship">X-WING</span></div>
+        <div>WEAPON: ARMED</div>
+        <div id="hud-zoom">ZOOM: OFF</div>
+      </div>
+      <div id="hud-controls">
+        W/S = Schub &nbsp;|&nbsp; A/D = Yaw<br>
+        Q/E = Roll &nbsp;|&nbsp; Pfeile = Pitch<br>
+        SPACE = Feuer &nbsp;|&nbsp; SHIFT = Zoom<br>
+        TAB = Schiff wechseln
+      </div>
+      <div id="hud-back">
+        <button class="hud-btn" onclick="exitGame()">← MENU</button>
+      </div>
+      <div class="scanlines"></div>
     </div>
   </div>
 
